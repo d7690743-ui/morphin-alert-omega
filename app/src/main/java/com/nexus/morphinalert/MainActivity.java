@@ -19,10 +19,10 @@ public class MainActivity extends Activity {
     private LinearLayout root;
     private TextView status;
     private WebView web;
-    private boolean showing = false;
+    private boolean webVisible = false;
 
     private int dp(int n) {
-        return (int) (n * getResources().getDisplayMetrics().density + 0.5f);
+        return (int)(n * getResources().getDisplayMetrics().density + 0.5f);
     }
 
     private TextView makeText(String value, int size, int color) {
@@ -74,15 +74,17 @@ public class MainActivity extends Activity {
 
         Button test = makeButton("2. Probar sonido Morphin");
         test.setOnClickListener(new View.OnClickListener() {
-            @Override public void onClick(View v) { AlertEngine.play(MainActivity.this, true); }
+            @Override public void onClick(View v) {
+                AlertEngine.play(MainActivity.this, true);
+            }
         });
         root.addView(test, new LinearLayout.LayoutParams(-1, dp(54)));
 
         Button webButton = makeButton("3. Abrir / ocultar WhatsApp Web");
         webButton.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
-                showing = !showing;
-                web.setVisibility(showing ? View.VISIBLE : View.GONE);
+                webVisible = !webVisible;
+                web.setVisibility(webVisible ? View.VISIBLE : View.GONE);
             }
         });
         root.addView(webButton, new LinearLayout.LayoutParams(-1, dp(54)));
@@ -97,18 +99,22 @@ public class MainActivity extends Activity {
         web.setVisibility(View.GONE);
         root.addView(web, new LinearLayout.LayoutParams(-1, 0, 1));
 
-        root.addView(makeText("WhatsApp Web es auxiliar. El detector Android funciona sin ella.", 11, Color.GRAY),
-            new LinearLayout.LayoutParams(-1, dp(52)));
+        TextView note = makeText(
+            "WhatsApp Web es auxiliar. El radar principal escucha las notificaciones Android y no depende de la WebView.",
+            11, Color.GRAY);
+        root.addView(note, new LinearLayout.LayoutParams(-1, dp(64)));
+
         setContentView(root);
         refreshStatus();
     }
 
     private void refreshStatus() {
-        String enabled = Settings.Secure.getString(getContentResolver(), "enabled_notification_listeners");
+        String enabled = Settings.Secure.getString(
+            getContentResolver(), "enabled_notification_listeners");
         if (enabled != null && enabled.contains(getPackageName())) {
-            status.setText("RADAR ACTIVO - Escuchando notificaciones");
+            status.setText("RADAR ACTIVO - Escuchando WhatsApp");
         } else {
-            status.setText("RADAR INACTIVO - Falta conceder acceso");
+            status.setText("RADAR INACTIVO - Concede acceso a notificaciones");
         }
     }
 
@@ -118,8 +124,8 @@ public class MainActivity extends Activity {
     }
 
     @Override public void onBackPressed() {
-        if (showing) {
-            showing = false;
+        if (webVisible) {
+            webVisible = false;
             web.setVisibility(View.GONE);
         } else {
             super.onBackPressed();

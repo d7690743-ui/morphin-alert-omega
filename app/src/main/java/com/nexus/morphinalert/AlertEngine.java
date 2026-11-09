@@ -1,42 +1,50 @@
 package com.nexus.morphinalert;
-import android.content.*;
-import android.media.*;
-import android.os.*;
+
+import android.content.Context;
+import android.media.ToneGenerator;
+import android.media.AudioManager;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.Vibrator;
+import android.os.Build;
+import android.os.VibrationEffect;
 
 public class AlertEngine {
-    private static long last = 0;
+    private static long lastPlayed = 0L;
+    private static ToneGenerator tone;
 
-    public static synchronized void play(Context context, boolean test) {
+    public static synchronized void play(final Context context, boolean test) {
         long now = System.currentTimeMillis();
-        if (!test && now - last < 1800) return;
-        last = now;
+        if (!test && now - lastPlayed < 1800L) return;
+        lastPlayed = now;
 
         try {
-            final MediaPlayer player = new MediaPlayer();
-            AssetFileDescriptor afd = context.getAssets().openFd("morphin_alert.wav");
-            player.setAudioAttributes(new AudioAttributes.Builder()
-                .setUsage(AudioAttributes.USAGE_NOTIFICATION)
-                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                .build());
-            player.setDataSource(afd.getFileDescriptor(), afd.getStartOffset(), afd.getLength());
-            afd.close();
-            player.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-                public void onCompletion(MediaPlayer p) { p.release(); }
-            });
-            player.setOnErrorListener(new MediaPlayer.OnErrorListener() {
-                public boolean onError(MediaPlayer p, int what, int extra) {
-                    p.release();
-                    return true;
+            if (tone == null) {
+                tone = new ToneGenerator(AudioManager.STREAM_NOTIFICATION, 90);
+            }
+            final ToneGenerator player = tone;
+            Handler handler = new Handler(Looper.getMainLooper());
+            handler.post(new Runnable() {
+                @Override public void run() {
+                    player.startTone(ToneGenerator.TONE_DTMF_5, 140);
+                    handler.postDelayed(new Runnable() {
+                        @Override public void run() {
+                            player.startTone(ToneGenerator.TONE_DTMF_7, 140);
+                        }
+                    }, 190);
+                    handler.postDelayed(new Runnable() {
+                        @Override public void run() {
+                            player.startTone(ToneGenerator.TONE_DTMF_9, 260);
+                        }
+                    }, 390);
                 }
             });
-            player.prepare();
-            player.start();
         } catch (Exception ignored) { }
 
         try {
             Vibrator vibrator = (Vibrator) context.getSystemService(Context.VIBRATOR_SERVICE);
             if (vibrator != null && vibrator.hasVibrator()) {
-                long[] pattern = {0, 120, 70, 180};
+                long[] pattern = new long[] {0, 120, 70, 180};
                 if (Build.VERSION.SDK_INT >= 26) {
                     vibrator.vibrate(VibrationEffect.createWaveform(pattern, -1));
                 } else {
