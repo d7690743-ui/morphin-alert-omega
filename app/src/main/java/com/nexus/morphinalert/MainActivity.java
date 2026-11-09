@@ -21,8 +21,9 @@ import java.util.Date;
 import java.util.Locale;
 
 public class MainActivity extends Activity {
-    private TextView status, diagnostics;
+    private TextView status, diagnostics, title;
     private WebView web;
+    private Button permission, test, webButton;
     private boolean webVisible = false;
     private final Handler handler = new Handler();
     private final Runnable refresher = new Runnable() {
@@ -42,14 +43,18 @@ public class MainActivity extends Activity {
         t.setTextSize(size);
         t.setTextColor(color);
         t.setGravity(17);
-        t.setPadding(dp(8), dp(8), dp(8), dp(8));
+        t.setPadding(dp(6), dp(5), dp(6), dp(5));
         return t;
     }
 
     private Button makeButton(String value) {
         Button b = new Button(this);
         b.setText(value);
+        b.setTextSize(14);
         b.setAllCaps(false);
+        b.setMinHeight(dp(42));
+        b.setMinimumHeight(dp(42));
+        b.setPadding(dp(6), 0, dp(6), 0);
         b.setTextColor(Color.WHITE);
         b.setBackgroundColor(Color.rgb(24, 95, 75));
         return b;
@@ -59,21 +64,21 @@ public class MainActivity extends Activity {
         super.onCreate(state);
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(dp(12), dp(12), dp(12), dp(8));
+        root.setPadding(dp(10), dp(6), dp(10), dp(5));
         root.setBackgroundColor(Color.rgb(13, 21, 30));
 
-        TextView title = makeText("MORPHIN ALERT Ω", 24, Color.rgb(64, 232, 165));
+        title = makeText("MORPHIN ALERT Ω", 22, Color.rgb(64, 232, 165));
         title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        root.addView(title, new LinearLayout.LayoutParams(-1, dp(56)));
+        root.addView(title, new LinearLayout.LayoutParams(-1, dp(46)));
 
-        status = makeText("Comprobando el radar...", 15, Color.WHITE);
+        status = makeText("Comprobando el radar...", 14, Color.WHITE);
         status.setBackgroundColor(Color.rgb(27, 43, 54));
-        root.addView(status, new LinearLayout.LayoutParams(-1, dp(55)));
+        root.addView(status, new LinearLayout.LayoutParams(-1, dp(42)));
 
-        diagnostics = makeText("Sin datos todavía", 13, Color.LTGRAY);
-        root.addView(diagnostics, new LinearLayout.LayoutParams(-1, dp(90)));
+        diagnostics = makeText("Sin datos todavía", 11, Color.LTGRAY);
+        root.addView(diagnostics, new LinearLayout.LayoutParams(-1, dp(66)));
 
-        Button permission = makeButton("1. Acceso a notificaciones");
+        permission = makeButton("1. Acceso a notificaciones");
         permission.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
                 try {
@@ -83,9 +88,9 @@ public class MainActivity extends Activity {
                 }
             }
         });
-        root.addView(permission, new LinearLayout.LayoutParams(-1, dp(48)));
+        root.addView(permission, new LinearLayout.LayoutParams(-1, dp(43)));
 
-        Button test = makeButton("2. Probar sonido y vibración");
+        test = makeButton("2. Probar sonido y vibración");
         test.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
                 AlertEngine.play(MainActivity.this, true);
@@ -94,16 +99,15 @@ public class MainActivity extends Activity {
                 refreshStatus();
             }
         });
-        root.addView(test, new LinearLayout.LayoutParams(-1, dp(48)));
+        root.addView(test, new LinearLayout.LayoutParams(-1, dp(43)));
 
-        Button webButton = makeButton("3. WhatsApp Web (escritorio)");
+        webButton = makeButton("3. WhatsApp Web (escritorio)");
         webButton.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
-                webVisible = !webVisible;
-                web.setVisibility(webVisible ? View.VISIBLE : View.GONE);
+                setWebVisible(!webVisible);
             }
         });
-        root.addView(webButton, new LinearLayout.LayoutParams(-1, dp(48)));
+        root.addView(webButton, new LinearLayout.LayoutParams(-1, dp(43)));
 
         web = new WebView(this);
         WebSettings settings = web.getSettings();
@@ -114,10 +118,12 @@ public class MainActivity extends Activity {
         settings.setSupportZoom(true);
         settings.setBuiltInZoomControls(true);
         settings.setDisplayZoomControls(false);
+        settings.setTextZoom(100);
         settings.setUserAgentString(
             "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 " +
             "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         );
+        web.setInitialScale(55);
         web.setWebViewClient(new WebViewClient());
         web.setWebChromeClient(new WebChromeClient());
         web.setVisibility(View.GONE);
@@ -125,12 +131,23 @@ public class MainActivity extends Activity {
         web.loadUrl("https://web.whatsapp.com/");
 
         TextView note = makeText(
-            "WhatsApp Web puede bloquear WebView aunque se solicite escritorio. " +
-            "El detector principal funciona sin WhatsApp Web.", 11, Color.GRAY);
-        root.addView(note, new LinearLayout.LayoutParams(-1, dp(58)));
+            "El radar Android funciona sin WhatsApp Web. La página web es auxiliar.",
+            10, Color.GRAY);
+        root.addView(note, new LinearLayout.LayoutParams(-1, dp(34)));
 
         setContentView(root);
         refreshStatus();
+    }
+
+    private void setWebVisible(boolean visible) {
+        webVisible = visible;
+        web.setVisibility(visible ? View.VISIBLE : View.GONE);
+        title.setVisibility(visible ? View.GONE : View.VISIBLE);
+        status.setVisibility(visible ? View.GONE : View.VISIBLE);
+        diagnostics.setVisibility(visible ? View.GONE : View.VISIBLE);
+        permission.setVisibility(visible ? View.GONE : View.VISIBLE);
+        test.setVisibility(visible ? View.GONE : View.VISIBLE);
+        webButton.setText(visible ? "Cerrar WhatsApp Web" : "3. WhatsApp Web (escritorio)");
     }
 
     private String clock(long timestamp) {
@@ -147,17 +164,15 @@ public class MainActivity extends Activity {
         SharedPreferences prefs = getSharedPreferences("hunter", MODE_PRIVATE);
         long connected = prefs.getLong("listener_connected", 0L);
         long last = prefs.getLong("last_event", 0L);
-        long test = prefs.getLong("test_event", 0L);
+        long testTime = prefs.getLong("test_event", 0L);
         long alerts = prefs.getLong("alert_attempt", 0L);
         long count = prefs.getLong("count", 0L);
         status.setText(permitted ? "PERMISO CONCEDIDO - Radar configurado"
                                  : "SIN PERMISO - Activa acceso a notificaciones");
         diagnostics.setText(
-            "Servicio conectado alguna vez: " + clock(connected) +
-            "\nÚltimo evento WhatsApp: " + clock(last) +
-            " | Eventos: " + count +
-            "\nÚltimo intento de alerta: " + clock(alerts) +
-            " | Prueba manual: " + clock(test));
+            "Servicio conectado: " + clock(connected) +
+            "\nÚltimo WhatsApp: " + clock(last) + " | Eventos: " + count +
+            "\nIntento de alerta: " + clock(alerts) + " | Prueba: " + clock(testTime));
     }
 
     @Override protected void onResume() {
@@ -172,12 +187,8 @@ public class MainActivity extends Activity {
     }
 
     @Override public void onBackPressed() {
-        if (webVisible) {
-            webVisible = false;
-            web.setVisibility(View.GONE);
-        } else {
-            super.onBackPressed();
-        }
+        if (webVisible) setWebVisible(false);
+        else super.onBackPressed();
     }
 
     @Override protected void onDestroy() {
