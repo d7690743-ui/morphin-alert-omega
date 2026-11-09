@@ -23,7 +23,7 @@ public class AlertEngine {
                 tone = new ToneGenerator(AudioManager.STREAM_NOTIFICATION, 90);
             }
             final ToneGenerator player = tone;
-            Handler handler = new Handler(Looper.getMainLooper());
+            final Handler handler = new Handler(Looper.getMainLooper());
             handler.post(new Runnable() {
                 @Override public void run() {
                     player.startTone(ToneGenerator.TONE_DTMF_5, 140);
